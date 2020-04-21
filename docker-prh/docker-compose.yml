@@ -1,0 +1,48 @@
+version: '3.0'
+
+services:
+  prh-php-fpm:
+    build:
+      context: ./php-fpm
+    volumes:
+      - ../src:/var/www
+      - ./freetds.conf:/etc/freetds/freetds.conf
+    links:
+      - database-prh
+
+  prh-php-cli:
+    build:
+      context: ./php-cli
+    volumes:
+      - ../src:/var/www
+      - ./freetds.conf:/etc/freetds/freetds.conf
+    stdin_open: true
+    tty: true
+    links:
+      - database-prh
+
+  prh-nginx:
+    build:
+      context: ./nginx
+    volumes:
+      - ../src:/var/www
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/sites/:/etc/nginx/sites-available
+      - ./nginx/conf.d/:/etc/nginx/conf.d
+    ports:
+      - "80:80"
+    depends_on:
+      - prh-php-fpm
+
+  database-prh:
+    build:
+      context: ./database
+    environment:
+      - MYSQL_DATABASE=db_prh
+      - MYSQL_USER=db_prh
+      - MYSQL_PASSWORD=db_password
+      - MYSQL_ROOT_PASSWORD=docker
+    volumes:
+      - ./dump.sql:/docker-entrypoint-initdb.d/dump.sql
+    ports:
+      - "3306:3306"
